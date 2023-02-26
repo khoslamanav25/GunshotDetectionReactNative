@@ -1,106 +1,200 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, Button, Platform, StatusBar } from 'react-native';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import React, {useEffect, useState} from 'react'
+import { useFonts } from "expo-font";
+import { StyleSheet } from "react-native";
+import { Provider } from "react-native-paper";
+import LoginScreen from "./screens/AuthScreens/LoginScreen";
+import RegisterScreen from "./screens/AuthScreens/RegisterScreen";
+import SplashScreen from "./screens/AuthScreens/SplashScreen";
+import DashboardScreen from "./screens/MainScreens/DashboardScreen";
+import ProfileScreen from "./screens/MainScreens/ProfileScreen";
+import AlarmTrackerScreen from './screens/MainScreens/AlarmTrackerScreen'
+import { LogBox } from 'react-native';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+//Ignore all log notifications
+// LogBox.ignoreAllLogs();
 
-export default function App() {
-  const [expoPushToken, setExpoPushToken] = useState('');
-  const [notification, setNotification] = useState(false);
-  const notificationListener = useRef();
-  const responseListener = useRef();
+import {
+  MaterialCommunityIcons,
+  FontAwesome5,
+  Ionicons,
+} from "@expo/vector-icons";
 
-  useEffect(() => {
-    registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
 
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
-    });
+import Firebasekeys from './config'
+let firebaseConfig = Firebasekeys;
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log(response);
-    });
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { heightPercentageToDP } from "react-native-responsive-screen";
 
-    return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
-    };
-  }, []);
+const Main = createMaterialBottomTabNavigator();
+const Auth = createStackNavigator();
+const Dashboard = createStackNavigator();
+const Profile = createStackNavigator();
 
+const inactiveColor = "#ededed";
+const themecolor = "#FF5349";
+const tabcolor = "#fff";
+
+const ProfileNavigator = () => {
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'space-around',
-      }}>
-      <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ textAlign: 'center', fontFamily: "PingFangTC-Medium", marginHorizontal: 10, fontSize: 16}}>
-          You will now receive notifications about any gunshots in your selected area!</Text>
-      </View>
-      <Button
-        title="Press to schedule a notification"
-        onPress={async () => {
-          await schedulePushNotification();
+    <Profile.Navigator
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: themecolor,
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          color: "#fff",
+        },
+      }}
+      initialRouteName="Profile"
+    >
+      <Profile.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          headerBackTitleVisible: false,
         }}
       />
-    </View>
+    </Profile.Navigator>
+  );
+};
+
+const DashboardNavigator = () => {
+  return (
+    <Dashboard.Navigator
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: themecolor,
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          color: "#fff",
+        },
+      }}
+      initialRouteName="Dashboard"
+    >
+      <Dashboard.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          headerBackTitleVisible: false,
+        }}
+      />
+      {/* <Dashboard.Screen
+        name="Alarm Tracker"
+        component={AlarmTrackerScreen}
+        options={{
+          headerBackTitleVisible: false,
+        }}
+      /> */}
+    </Dashboard.Navigator>
+  );
+};
+
+function MainNavigator() {
+  return (
+    <NavigationContainer>
+      <Main.Navigator
+        initialRouteName="Dashboard Navigator"
+        sceneAnimationEnabled="true"
+        activeColor={tabcolor}
+        inactiveColor={inactiveColor}
+        barStyle={{
+          backgroundColor: `${themecolor}`,
+        }}
+        shifting={true}
+      >
+        <Main.Screen
+          name="Dashboard Navigator"
+          component={DashboardNavigator}
+          options={{
+            title: "Dashboard",
+            tabBarIcon: ({ focused }) => (
+              <MaterialCommunityIcons
+                name="view-dashboard-variant"
+                size={26}
+                color={focused ? tabcolor : inactiveColor}
+              />
+            ),
+          }}
+        />
+        <Main.Screen
+          name="Profile Navigator"
+          component={ProfileNavigator}
+          options={{
+            title: "Profile",
+            tabBarIcon: ({ focused }) => (
+              <Ionicons
+                name="settings"
+                size={26}
+                color={focused ? tabcolor : inactiveColor}
+              />
+            ),
+          }}
+        />
+      </Main.Navigator>
+    </NavigationContainer>
   );
 }
 
-async function schedulePushNotification() {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "IMPORTANT: ",
-      body: 'Gunshot sound detected at your school!',
-    },
-    trigger: { seconds: 2 },
-  });
+function AuthNavigator() {
+  return (
+    <NavigationContainer>
+      <Auth.Navigator
+        initialRouteName="Splash"
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Auth.Screen name="Splash" component={SplashScreen} options={{}} />
+        <Auth.Screen name="Login" component={LoginScreen} options={{}} />
+        <Auth.Screen name="Register" component={RegisterScreen} options={{}} />
+      </Auth.Navigator>
+    </NavigationContainer>
+  );
 }
 
-async function registerForPushNotificationsAsync() {
-  let token;
+export default function App() {
+  
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState(); // Handle user state changes
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'IMPORTANT: Must agree in order to receive notifications',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#ce2029',
-    });
+  function onAuthStateChanged(user) {
+    setUser(user);
+    if (initializing) setInitializing(false);
   }
 
-  else if (Platform.OS == 'ios') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'IMPORTANT: Must agree in order to receive notifications',
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#ce2029',
-    })
+  useEffect(() => {
+    const subscriber = firebase.auth().onAuthStateChanged(onAuthStateChanged);
+    return subscriber; // unsubscribe on unmount
+  }, []);
+
+  if (initializing) return null;
+
+  if (!user) {
+    return <AuthNavigator />;
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notification!');
-      return;
-    }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log(token);
-  } else {
-    alert('Must use physical device for Push Notifications');
-  }
-
-  return token;
+  return <MainNavigator />;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
